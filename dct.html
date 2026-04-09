@@ -1,0 +1,474 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Minecraft PvP League Dashboard</title>
+    <style>
+        /* --- DESIGN & STYLES --- */
+        :root {
+            --bg-dark: #0f1015;
+            --bg-panel: #1a1b23;
+            --accent: #ffaa00; /* Orange/Gold Accent */
+            --text-main: #ffffff;
+            --text-muted: #8b8d99;
+            --border: #2d2e3b;
+            
+            /* Table Left-Border Colors */
+            --rank-top: #00ff66;
+            --rank-mid: #2b5cff;
+            --rank-bot: #ff3333;
+        }
+
+        body {
+            margin: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-dark);
+            color: var(--text-main);
+        }
+
+        /* Sidebar Navigation */
+        .sidebar {
+            position: fixed;
+            left: 0;
+            top: 0;
+            width: 220px;
+            height: 100vh;
+            background-color: var(--bg-panel);
+            border-right: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            padding-top: 30px;
+        }
+
+        .logo {
+            text-align: center;
+            font-size: 22px;
+            font-weight: bold;
+            color: var(--accent);
+            margin-bottom: 40px;
+            letter-spacing: 1px;
+        }
+
+        .nav-btn {
+            background: none;
+            border: none;
+            color: var(--text-muted);
+            padding: 16px 25px;
+            text-align: left;
+            font-size: 16px;
+            cursor: pointer;
+            transition: 0.2s;
+            border-left: 4px solid transparent;
+            font-weight: 600;
+        }
+
+        .nav-btn:hover {
+            color: var(--text-main);
+            background-color: rgba(255, 170, 0, 0.05);
+        }
+
+        .nav-btn.active {
+            color: var(--text-main);
+            border-left: 4px solid var(--accent);
+            background-color: rgba(255, 170, 0, 0.1);
+        }
+
+        /* Main Content Area */
+        .main-content {
+            margin-left: 220px;
+            padding: 40px 50px;
+        }
+
+        /* League Tabs Selector */
+        .league-selector {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 25px;
+            flex-wrap: wrap;
+        }
+
+        .league-tab {
+            background-color: var(--bg-panel);
+            color: var(--text-muted);
+            border: 1px solid var(--border);
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: 0.2s;
+        }
+
+        .league-tab:hover {
+            border-color: var(--text-muted);
+        }
+
+        .league-tab.active {
+            background-color: var(--accent);
+            color: #000;
+            border-color: var(--accent);
+        }
+
+        .header-flex {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .section-title {
+            font-size: 26px;
+            font-weight: bold;
+        }
+
+        .season-badge {
+            background-color: var(--bg-panel);
+            border: 1px solid var(--border);
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 13px;
+            color: var(--text-muted);
+        }
+
+        /* The Table Structure */
+        .table-container {
+            background-color: var(--bg-panel);
+            border-radius: 12px;
+            border: 1px solid var(--border);
+            overflow: hidden;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th, td {
+            padding: 16px 20px;
+            text-align: left;
+            border-bottom: 1px solid var(--border);
+            font-size: 15px;
+        }
+
+        th {
+            color: var(--text-muted);
+            font-size: 12px;
+            text-transform: uppercase;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+            padding-top: 20px;
+            padding-bottom: 20px;
+        }
+
+        tr:last-child td { border-bottom: none; }
+        
+        tr:hover { background-color: rgba(255, 255, 255, 0.02); }
+
+        /* Left Border Colors */
+        .row-green { border-left: 4px solid var(--rank-top); }
+        .row-blue  { border-left: 4px solid var(--rank-mid); }
+        .row-red   { border-left: 4px solid var(--rank-bot); }
+
+        /* Team Name & Logo Flexbox */
+        .team-cell {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            font-weight: bold;
+            color: var(--text-main);
+        }
+
+        .team-logo {
+            width: 28px;
+            height: 28px;
+            border-radius: 4px;
+            object-fit: cover;
+            background-color: #2a2b36;
+        }
+
+        /* Stats Coloring */
+        .stat-pts { color: var(--accent); font-weight: bold; font-size: 16px; }
+        .stat-muted { color: var(--text-muted); }
+
+        /* Form Boxes */
+        .form-container {
+            display: flex;
+            gap: 5px;
+        }
+
+        .form-box {
+            width: 24px;
+            height: 24px;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: bold;
+            color: #fff;
+            background-color: #3e404f;
+        }
+
+        .form-W { background-color: #238843; }
+        .form-L { background-color: #d13639; }
+
+        /* Fixtures Grid */
+        .card-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+            gap: 20px;
+        }
+
+        .card {
+            background-color: var(--bg-panel);
+            padding: 20px;
+            border-radius: 10px;
+            border: 1px solid var(--border);
+            position: relative;
+        }
+
+        .match-league-tag {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background-color: rgba(255, 255, 255, 0.1);
+            color: var(--text-muted);
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+
+        .hidden { display: none; }
+    </style>
+</head>
+<body>
+
+    <div class="sidebar">
+        <div class="logo">⚔️ PvP League</div>
+        <button class="nav-btn active" onclick="showTab('standings')">📊 Standings</button>
+        <button class="nav-btn" onclick="showTab('fixtures')">❓ Coming Soon</button> <!-- Gonna be fixtures -->
+    </div>
+
+    <div class="main-content">
+        
+        <div id="standings" class="tab-content">
+            <div class="league-selector" id="league-tabs-container"></div>
+
+            <div class="header-flex">
+                <div class="section-title" id="current-league-title">Diamond League</div>
+                <div class="season-badge">Season 1 | 27 Matchdays</div>
+            </div>
+
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th style="width: 50px;">#</th>
+                            <th style="width: 300px;">Team</th>
+                            <th>PL</th>
+                            <th>W</th>
+                            <th>L</th>
+                            <th>+/-</th>
+                            <th>RD</th>
+                            <th>PTS</th>
+                            <th>Form</th>
+                        </tr>
+                    </thead>
+                    <tbody id="table-body">
+                        </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div id="fixtures" class="tab-content hidden">
+            <div class="section-title" style="margin-bottom: 25px;">Coming Soon</div> <!-- Gonna be fixtures -->
+            <div class="card-grid" id="fixtures-container">
+                </div>
+        </div>
+
+    </div>
+
+    <script>
+        // ===================================================================== //
+        // 🛠️ EASY EDIT DATA SECTION 🛠️                                            //
+        // Add, remove, or rename your leagues and teams right here!             //
+        // ===================================================================== //
+        
+        const LEAGUES = ["Diamond League", "Gold League", "Iron League", "Wood League"];
+
+        const LEAGUE_DATA = {
+            teams: [
+                // ------------------ Diamond League (8 Teams) ------------------
+                // To add a logo, put the link between the quotes like logo: "https://link.com/image.png"
+                { league: "Diamond League", name: "E.V.V. '58", logo: "teams/EVV58.png", played: 0, wins: 0, losses: 0, rWon: 0, rLost: 0, points: 0, form: ["?", "?", "?", "?", "?"] },
+                { league: "Diamond League", name: "PND", logo: "teams/PND.png", played: 0, wins: 0, losses: 0, rWon: 0, rLost: 0, points: 0, form: ["?", "?", "?", "?", "?"] },
+                { league: "Diamond League", name: "La Famillia", logo: "teams/La Famillia.png", played: 0, wins: 0, losses: 0, rWon: 0, rLost: 0, points: 0, form: ["?", "?", "?", "?", "?"] },
+                { league: "Diamond League", name: "The Cocos", logo: "teams/The Cocos.png", played: 0, wins: 0, losses: 0, rWon: 0, rLost: 0, points: 0, form: ["?", "?", "?", "?", "?"] },
+                { league: "Diamond League", name: "Ultra Team", logo: "teams/Ultra Team.png", played: 0, wins: 0, losses: 0, rWon: 0, rLost: 0, points: 0, form: ["?", "?", "?", "?", "?"] },
+                { league: "Diamond League", name: "TBot Warriors", logo: "teams/TBot Warriors.png", played: 0, wins: 0, losses: 0, rWon: 0, rLost: 0, points: 0, form: ["?", "?", "?", "?", "?"] },
+                { league: "Diamond League", name: "The Boiz", logo: "teams/The Boiz.png", played: 0, wins: 0, losses: 0, rWon: 0, rLost: 0, points: 0, form: ["?", "?", "?", "?", "?"] },
+                { league: "Diamond League", name: "Team 8", logo: "", played: 0, wins: 0, losses: 0, rWon: 0, rLost: 0, points: 0, form: ["?", "?", "?", "?", "?"] },
+                { league: "Diamond League", name: "Team 9", logo: "", played: 0, wins: 0, losses: 0, rWon: 0, rLost: 0, points: 0, form: ["?", "?", "?", "?", "?"] },
+                { league: "Diamond League", name: "Team 10", logo: "", played: 0, wins: 0, losses: 0, rWon: 0, rLost: 0, points: 0, form: ["?", "?", "?", "?", "?"] },
+
+                // ------------------ GOLD LEAGUE (8 Teams) ------------------
+                { league: "Gold League", name: "Gold Team 1", logo: "", played: 0, wins: 0, losses: 0, rWon: 0, rLost: 0, points: 0, form: ["?", "?", "?", "?", "?"] },
+                { league: "Gold League", name: "Gold Team 2", logo: "", played: 0, wins: 0, losses: 0, rWon: 0, rLost: 0, points: 0, form: ["?", "?", "?", "?", "?"] },
+                { league: "Gold League", name: "Gold Team 3", logo: "", played: 0, wins: 0, losses: 0, rWon: 0, rLost: 0, points: 0, form: ["?", "?", "?", "?", "?"] },
+                { league: "Gold League", name: "Gold Team 4", logo: "", played: 0, wins: 0, losses: 0, rWon: 0, rLost: 0, points: 0, form: ["?", "?", "?", "?", "?"] },
+                { league: "Gold League", name: "Gold Team 5", logo: "", played: 0, wins: 0, losses: 0, rWon: 0, rLost: 0, points: 0, form: ["?", "?", "?", "?", "?"] },
+                { league: "Gold League", name: "Gold Team 6", logo: "", played: 0, wins: 0, losses: 0, rWon: 0, rLost: 0, points: 0, form: ["?", "?", "?", "?", "?"] },
+                { league: "Gold League", name: "Gold Team 7", logo: "", played: 0, wins: 0, losses: 0, rWon: 0, rLost: 0, points: 0, form: ["?", "?", "?", "?", "?"] },
+                { league: "Gold League", name: "Gold Team 8", logo: "", played: 0, wins: 0, losses: 0, rWon: 0, rLost: 0, points: 0, form: ["?", "?", "?", "?", "?"] },
+                { league: "Gold League", name: "Gold Team 9", logo: "", played: 0, wins: 0, losses: 0, rWon: 0, rLost: 0, points: 0, form: ["?", "?", "?", "?", "?"] },
+                { league: "Gold League", name: "Gold Team 10", logo: "", played: 0, wins: 0, losses: 0, rWon: 0, rLost: 0, points: 0, form: ["?", "?", "?", "?", "?"] },
+
+                // ------------------ IRON LEAGUE (8 Teams) ------------------
+                { league: "Iron League", name: "Iron Team 1", logo: "", played: 0, wins: 0, losses: 0, rWon: 0, rLost: 0, points: 0, form: ["?", "?", "?", "?", "?"] },
+                { league: "Iron League", name: "Iron Team 2", logo: "", played: 0, wins: 0, losses: 0, rWon: 0, rLost: 0, points: 0, form: ["?", "?", "?", "?", "?"] },
+                { league: "Iron League", name: "Iron Team 3", logo: "", played: 0, wins: 0, losses: 0, rWon: 0, rLost: 0, points: 0, form: ["?", "?", "?", "?", "?"] },
+                { league: "Iron League", name: "Iron Team 4", logo: "", played: 0, wins: 0, losses: 0, rWon: 0, rLost: 0, points: 0, form: ["?", "?", "?", "?", "?"] },
+                { league: "Iron League", name: "Iron Team 5", logo: "", played: 0, wins: 0, losses: 0, rWon: 0, rLost: 0, points: 0, form: ["?", "?", "?", "?", "?"] },
+                { league: "Iron League", name: "Iron Team 6", logo: "", played: 0, wins: 0, losses: 0, rWon: 0, rLost: 0, points: 0, form: ["?", "?", "?", "?", "?"] },
+                { league: "Iron League", name: "Iron Team 7", logo: "", played: 0, wins: 0, losses: 0, rWon: 0, rLost: 0, points: 0, form: ["?", "?", "?", "?", "?"] },
+                { league: "Iron League", name: "Iron Team 8", logo: "", played: 0, wins: 0, losses: 0, rWon: 0, rLost: 0, points: 0, form: ["?", "?", "?", "?", "?"] },
+                { league: "Iron League", name: "Iron Team 9", logo: "", played: 0, wins: 0, losses: 0, rWon: 0, rLost: 0, points: 0, form: ["?", "?", "?", "?", "?"] },
+                { league: "Iron League", name: "Iron Team 10", logo: "", played: 0, wins: 0, losses: 0, rWon: 0, rLost: 0, points: 0, form: ["?", "?", "?", "?", "?"] },
+
+
+                // ------------------ WOOD LEAGUE (8 Teams) ------------------
+                { league: "Wood League", name: "Wood Team 1", logo: "", played: 0, wins: 0, losses: 0, rWon: 0, rLost: 0, points: 0, form: ["?", "?", "?", "?", "?"] },
+                { league: "Wood League", name: "Wood Team 2", logo: "", played: 0, wins: 0, losses: 0, rWon: 0, rLost: 0, points: 0, form: ["?", "?", "?", "?", "?"] },
+                { league: "Wood League", name: "Wood Team 3", logo: "", played: 0, wins: 0, losses: 0, rWon: 0, rLost: 0, points: 0, form: ["?", "?", "?", "?", "?"] },
+                { league: "Wood League", name: "Wood Team 4", logo: "", played: 0, wins: 0, losses: 0, rWon: 0, rLost: 0, points: 0, form: ["?", "?", "?", "?", "?"] },
+                { league: "Wood League", name: "Wood Team 5", logo: "", played: 0, wins: 0, losses: 0, rWon: 0, rLost: 0, points: 0, form: ["?", "?", "?", "?", "?"] },
+                { league: "Wood League", name: "Wood Team 6", logo: "", played: 0, wins: 0, losses: 0, rWon: 0, rLost: 0, points: 0, form: ["?", "?", "?", "?", "?"] },
+                { league: "Wood League", name: "Wood Team 7", logo: "", played: 0, wins: 0, losses: 0, rWon: 0, rLost: 0, points: 0, form: ["?", "?", "?", "?", "?"] },
+                { league: "Wood League", name: "Wood Team 8", logo: "", played: 0, wins: 0, losses: 0, rWon: 0, rLost: 0, points: 0, form: ["?", "?", "?", "?", "?"] },
+                { league: "Wood League", name: "Wood Team 9", logo: "", played: 0, wins: 0, losses: 0, rWon: 0, rLost: 0, points: 0, form: ["?", "?", "?", "?", "?"] },
+                { league: "Wood League", name: "Wood Team 10", logo: "", played: 0, wins: 0, losses: 0, rWon: 0, rLost: 0, points: 0, form: ["?", "?", "?", "?", "?"] }
+            ],
+
+            // 🗓️ UPCOMING MATCHES - Edit times, dates, teams, and the league tag here
+            fixtures: [
+            ]
+        };
+
+        let currentLeague = LEAGUES[0];
+
+        // ===================================================================== //
+        // ⚙️ AUTOMATED LOGIC (No need to touch) ⚙️                               //
+        // ===================================================================== //
+
+        function initLeagues() {
+            const container = document.getElementById('league-tabs-container');
+            container.innerHTML = "";
+            LEAGUES.forEach(league => {
+                const btn = document.createElement('button');
+                btn.className = `league-tab ${league === currentLeague ? 'active' : ''}`;
+                btn.innerText = league;
+                btn.onclick = () => {
+                    currentLeague = league;
+                    initLeagues(); 
+                    renderTable(); 
+                };
+                container.appendChild(btn);
+            });
+            document.getElementById('current-league-title').innerText = currentLeague;
+        }
+
+        function showTab(tabId) {
+            document.querySelectorAll('.tab-content').forEach(tab => tab.classList.add('hidden'));
+            document.querySelectorAll('.nav-btn').forEach(btn => btn.classList.remove('active'));
+            document.getElementById(tabId).classList.remove('hidden');
+            event.currentTarget.classList.add('active');
+        }
+
+        function renderTable() {
+            const tbody = document.getElementById('table-body');
+            tbody.innerHTML = "";
+
+            let leagueTeams = LEAGUE_DATA.teams.filter(t => t.league === currentLeague);
+
+            leagueTeams.sort((a, b) => {
+                if (b.points !== a.points) return b.points - a.points;
+                let rdA = a.rWon - a.rLost;
+                let rdB = b.rWon - b.rLost;
+                return rdB - rdA;
+            });
+
+            leagueTeams.forEach((team, index) => {
+                const rank = index + 1;
+                
+                let rowClass = "row-blue";
+                if (rank <= 2) rowClass = "row-green";
+                if (rank > leagueTeams.length - 2 && leagueTeams.length > 3) rowClass = "row-red";
+
+                const plusMinus = `${team.rWon}-${team.rLost}`;
+                const rd = team.rWon - team.rLost;
+                const rdDisplay = rd > 0 ? `+${rd}` : rd; 
+
+                let formHtml = "";
+                team.form.forEach(result => {
+                    let fClass = "form-?";
+                    if (result === "W") fClass = "form-W";
+                    if (result === "L") fClass = "form-L";
+                    formHtml += `<div class="form-box ${fClass}">${result}</div>`;
+                });
+                
+                for(let i = team.form.length; i < 5; i++) {
+                    formHtml += `<div class="form-box form-?">?</div>`;
+                }
+
+                const logoSrc = team.logo !== "" ? team.logo : "data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=";
+
+                tbody.innerHTML += `
+                    <tr class="${rowClass}">
+                        <td class="stat-muted">${rank}</td>
+                        <td>
+                            <div class="team-cell">
+                                <img src="${logoSrc}" class="team-logo" alt="logo">
+                                <span>${team.name}</span>
+                            </div>
+                        </td>
+                        <td class="stat-muted">${team.played}</td>
+                        <td class="stat-muted">${team.wins}</td>
+                        <td class="stat-muted">${team.losses}</td>
+                        <td class="stat-muted">${plusMinus}</td>
+                        <td class="stat-muted">${rdDisplay}</td>
+                        <td class="stat-pts">${team.points}</td>
+                        <td><div class="form-container">${formHtml}</div></td>
+                    </tr>
+                `;
+            });
+        }
+
+        function renderFixtures() {
+            const container = document.getElementById('fixtures-container');
+            container.innerHTML = "";
+            LEAGUE_DATA.fixtures.forEach(match => {
+                container.innerHTML += `
+                    <div class="card">
+                        <div class="match-league-tag">${match.leagueTag}</div>
+                        <div style="color: var(--accent); font-size: 13px; font-weight: bold; margin-bottom: 25px;">
+                            🗓️ ${match.date} • ${match.time}
+                        </div>
+                        <div style="display: flex; justify-content: space-between; font-weight: bold; font-size: 16px;">
+                            <span>${match.team1}</span>
+                            <span style="color: var(--text-muted); font-size: 14px;">VS</span>
+                            <span>${match.team2}</span>
+                        </div>
+                    </div>
+                `;
+            });
+        }
+
+        initLeagues();
+        renderTable();
+        renderFixtures();
+
+    </script>
+</body>
+</html>
